@@ -1,0 +1,25 @@
+[package]
+name = "my_library"
+version = "0.1.0"
+edition = "2024"
+
+[[bench]]
+name = "random"
+harness = false
+
+[dependencies]
+rand = { version = "0.10" }
+rand_pcg = { workspace = true, optional = true }
+rand_xorshift = { workspace = true, optional = true }
+bevy = { workspace = true }
+bevy_egui = { workspace = true }
+anyhow = {workspace = true}
+
+[dev-dependencies]
+criterion = { version = "0.8.1", features = ["html_reports"] }
+
+[features]
+default = ["pcg"]
+pcg = ["rand_pcg"]
+xorshift = ["rand_xorshift"]
+locking = []

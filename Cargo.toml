@@ -1,0 +1,11 @@
+[workspace]
+members = ["hello_bevy", "hello_world", "my_library", "pig", "flappy_dragon"]
+
+resolver = "3"
+
+[workspace.dependencies]
+bevy = { version = "0.18" }
+bevy_egui = { version = "0.39.1" }
+rand_pcg = "0.10.1"
+rand_xorshift = "0.5.0"
+anyhow = "1"
