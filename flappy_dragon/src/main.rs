@@ -1,6 +1,9 @@
 use bevy::prelude::*;
 use my_library::bevy_assets::{AssetManager, AssetResource, AssetStore, LoadedAssets};
-use my_library::bevy_framework::{cleanup, GameStatePlugin};
+use my_library::bevy_framework::{cycle_animations, AnimationCycle};
+use my_library::bevy_framework::{
+    cleanup, AnimationFrame, AnimationOption, Animations, GameStatePlugin, PerFrameAnimation,
+};
 use my_library::*;
 
 //START: components
@@ -32,7 +35,7 @@ fn main() -> anyhow::Result<()> {
 
     add_phase!(app, GamePhase, GamePhase::Flapping,
         start => [ setup ],
-        run => [gravity, flap, clamp, move_walls, hit_wall],
+        run => [gravity, flap, clamp, move_walls, hit_wall, cycle_animations],
         exit => [cleanup::<FlappyElement>]
     );
 
@@ -56,7 +59,49 @@ fn main() -> anyhow::Result<()> {
             .add_image("flappy_dragon", "flappy_dragon.png")?
             .add_image("wall", "wall.png")?
             .add_sound("dragonflap", "dragonflap.ogg")?
-            .add_sound("crash", "crash.ogg")?,
+            .add_sound("crash", "crash.ogg")?
+            .add_spritesheet(
+                "flappy_sprite_sheet",
+                "flappy_sprite_sheet.png",
+                62.0,
+                65.0,
+                4,
+                1,
+            )?,
+    )
+    .insert_resource(
+        Animations::new()
+            .with_animation(
+                "Straight and Level",
+                PerFrameAnimation::new(vec![
+                    AnimationFrame::new(2, 500, vec![AnimationOption::NextFrame]),
+                    AnimationFrame::new(3, 500, vec![AnimationOption::GoToFrame(0)]),
+                ]),
+            )
+            .with_animation(
+                "Flapping",
+                PerFrameAnimation::new(vec![
+                    AnimationFrame::new(
+                        0,
+                        66,
+                        vec![
+                            AnimationOption::NextFrame,
+                            AnimationOption::PlaySound("dragonflap".to_string()),
+                        ],
+                    ),
+                    AnimationFrame::new(1, 66, vec![AnimationOption::NextFrame]),
+                    AnimationFrame::new(2, 66, vec![AnimationOption::NextFrame]),
+                    AnimationFrame::new(3, 66, vec![AnimationOption::NextFrame]),
+                    AnimationFrame::new(2, 66, vec![AnimationOption::NextFrame]),
+                    AnimationFrame::new(
+                        1,
+                        66,
+                        vec![AnimationOption::SwitchToAnimation(
+                            "Straight and Level".to_string(),
+                        )],
+                    ),
+                ]),
+            ),
     )
     .run();
     Ok(())
@@ -71,14 +116,14 @@ fn setup(
     loaded_assets: AssetResource,
 ) {
     commands.spawn(Camera2d::default()).insert(FlappyElement); //<callout id="flappy.basics.2d_camera" />
-    spawn_image!(
+    spawn_animated_sprite!(
         assets,
         commands,
-        "flappy_dragon",
+        "flappy_sprite_sheet",
         -490.0,
         0.0,
-        1.0,
-        &loaded_assets,
+        10.0,
+        "Straight and Level",
         Flappy { gravity: 0.0 },
         FlappyElement
     );
@@ -122,17 +167,11 @@ fn gravity(mut query: Query<(&mut Flappy, &mut Transform)>) {
 //END: gravity
 
 //START: flap
-fn flap(
-    keyboard: Res<ButtonInput<KeyCode>>,
-    mut query: Query<&mut Flappy>,
-    assets: Res<AssetStore>,
-    loaded_assets: Res<LoadedAssets>,
-    mut commands: Commands,
-) {
+fn flap(keyboard: Res<ButtonInput<KeyCode>>, mut query: Query<(&mut Flappy, &mut AnimationCycle)>) {
     if keyboard.pressed(KeyCode::Space) {
-        if let Ok(mut flappy) = query.single_mut() {
+        if let Ok((mut flappy, mut animation)) = query.single_mut() {
             flappy.gravity = -5.0; //<callout id="flappy.basics.flap" />
-            assets.play("dragonflap", &mut commands, &loaded_assets);
+            animation.switch("Flapping");
         }
     }
 }

@@ -3,10 +3,12 @@ use bevy::prelude::{Commands, Component, Entity, Query, With};
 mod game_menu;
 pub mod game_state;
 mod phase;
+mod animation;
 
 pub use game_menu::*;
 pub use game_state::*;
 pub use phase::*;
+pub use animation::*;
 
 pub fn cleanup<T>(query: Query<Entity, With<T>>, mut commands: Commands)
 where

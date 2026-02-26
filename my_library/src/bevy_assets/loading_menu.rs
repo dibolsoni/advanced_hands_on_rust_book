@@ -1,4 +1,4 @@
-use crate::bevy_assets::{setup_asset_store, AssetManager, AssetStore};
+use crate::bevy_assets::{setup_asset_store, AssetManager, AssetStore, LoadedAssets};
 use crate::bevy_framework::MenuResource;
 use bevy::asset::LoadedUntypedAsset;
 use bevy::prelude::*;
@@ -34,6 +34,9 @@ pub(crate) fn run_loading_menu<T>(
     mut state: ResMut<NextState<T>>,
     mut egui_context: EguiContexts,
     menu_info: Res<MenuResource<T>>,
+    mut store: ResMut<AssetStore>,
+    mut texture_atlases: ResMut<Assets<TextureAtlasLayout>>,
+    loaded_assets: Res<LoadedAssets>,
 ) where
     T: States + FromWorld + FreelyMutableState,
 {
@@ -44,6 +47,8 @@ pub(crate) fn run_loading_menu<T>(
             _ => true,
         });
     if to_load.0.is_empty() {
+        load_atlases(&mut store, &mut texture_atlases, &loaded_assets);
+        println!("Atlases loaded!");
         state.set(menu_info.menu_state.clone());
     }
     println!("Loading: {} assets remaining", to_load.0.len());
@@ -56,4 +61,22 @@ pub(crate) fn run_loading_menu<T>(
 
 pub(crate) fn exit_menu(mut commands: Commands) {
     commands.remove_resource::<AssetsToLoad>();
+}
+
+pub(crate) fn load_atlases(
+    asset_store: &mut AssetStore,
+    texture_atlases: &mut Assets<TextureAtlasLayout>,
+    loaded_assets: &LoadedAssets,
+) {
+    for new_atlas in asset_store.atlases_to_build.iter() {
+        let atlas = TextureAtlasLayout::from_grid(
+            new_atlas.tile_size.as_uvec2(),
+            new_atlas.sprites_x as u32,
+            new_atlas.sprites_y as u32,
+            None, None
+        );
+        let atlas_handle = texture_atlases.add(atlas);
+        let img = asset_store.get_handle(&new_atlas.texture_tag, loaded_assets).expect("Could not load texture from teh atlas");
+        asset_store.atlases.insert(new_atlas.tag.clone(), (img, atlas_handle));
+    }
 }
