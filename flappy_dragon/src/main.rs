@@ -1,9 +1,10 @@
 use bevy::prelude::*;
 use my_library::bevy_assets::{AssetManager, AssetResource, AssetStore, LoadedAssets};
-use my_library::bevy_framework::{cycle_animations, AnimationCycle};
 use my_library::bevy_framework::{
-    cleanup, AnimationFrame, AnimationOption, Animations, GameStatePlugin, PerFrameAnimation,
+    cleanup, AnimationFrame, AnimationOption, Animations, ContinualParallax,
+    GameStatePlugin, PerFrameAnimation,
 };
+use my_library::bevy_framework::{continual_parallax, cycle_animations, AnimationCycle};
 use my_library::*;
 
 //START: components
@@ -35,7 +36,7 @@ fn main() -> anyhow::Result<()> {
 
     add_phase!(app, GamePhase, GamePhase::Flapping,
         start => [ setup ],
-        run => [gravity, flap, clamp, move_walls, hit_wall, cycle_animations],
+        run => [gravity, flap, clamp, move_walls, hit_wall, cycle_animations, continual_parallax],
         exit => [cleanup::<FlappyElement>]
     );
 
@@ -58,6 +59,10 @@ fn main() -> anyhow::Result<()> {
         AssetManager::new()
             .add_image("flappy_dragon", "flappy_dragon.png")?
             .add_image("wall", "wall.png")?
+            .add_image("bg_static", "rocky-far-mountains.png")?
+            .add_image("bg_far", "rocky-nowater-far.png")?
+            .add_image("bg_mid", "rocky-nowater-mid.png")?
+            .add_image("bg_close", "rocky-nowater-close.png")?
             .add_sound("dragonflap", "dragonflap.ogg")?
             .add_sound("crash", "crash.ogg")?
             .add_spritesheet(
@@ -127,7 +132,83 @@ fn setup(
         Flappy { gravity: 0.0 },
         FlappyElement
     );
-    build_wall(&mut commands, &assets, &loaded_assets, rng.range(-5..5)); //<callout id="flappy.basics.build_wall" />
+    build_wall(&mut commands, &assets, &loaded_assets, rng.range(-5..5));
+    spawn_image!(
+        assets,
+        commands,
+        "bg_static",
+        0.0,
+        0.0,
+        1.0,
+        &loaded_assets,
+        FlappyElement
+    );
+    spawn_image!(
+        assets,
+        commands,
+        "bg_far",
+        0.0,
+        0.0,
+        2.0,
+        &loaded_assets,
+        FlappyElement,
+        ContinualParallax::new(1280.0, 66, Vec2::new(1.0, 0.0))
+    );
+    spawn_image!(
+        assets,
+        commands,
+        "bg_far",
+        1280.0,
+        0.0,
+        2.0,
+        &loaded_assets,
+        FlappyElement,
+        ContinualParallax::new(1280.0, 66, Vec2::new(1.0, 0.0))
+    );
+    spawn_image!(
+        assets,
+        commands,
+        "bg_mid",
+        0.0,
+        0.0,
+        3.0,
+        &loaded_assets,
+        FlappyElement,
+        ContinualParallax::new(1280.0, 33, Vec2::new(1.0, 0.0))
+    );
+    spawn_image!(
+        assets,
+        commands,
+        "bg_mid",
+        1280.0,
+        0.0,
+        3.0,
+        &loaded_assets,
+        FlappyElement,
+        ContinualParallax::new(1280.0, 33, Vec2::new(1.0, 0.0))
+    );
+    spawn_image!(
+        assets,
+        commands,
+        "bg_close",
+        0.0,
+        0.0,
+        4.0,
+        &loaded_assets,
+        FlappyElement,
+        ContinualParallax::new(1280.0, 16, Vec2::new(2.0, 0.0))
+    );
+    spawn_image!(
+        assets,
+        commands,
+        "bg_close",
+        1280.0,
+        0.0,
+        4.0,
+        &loaded_assets,
+        FlappyElement,
+        ContinualParallax::new(1280.0, 16, Vec2::new(2.0, 0.0))
+    );
 }
 //END: setup
 
@@ -146,7 +227,7 @@ fn build_wall(
                 "wall",
                 512.0,
                 y as f32 * 32.0,
-                1.0,
+                10.0,
                 &loaded_assets,
                 Obstacle,
                 FlappyElement
