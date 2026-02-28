@@ -1,5 +1,5 @@
 use crate::bevy_assets::{exit_menu, run_loading_menu, setup_loading_menu};
-use crate::bevy_framework::{cleanup, run, setup_menu, MenuElement, MenuResource};
+use crate::bevy_framework::{cleanup, run, setup_menu, Impulse, MenuElement, MenuResource, PhysicsTick};
 use bevy::prelude::*;
 use bevy::state::state::FreelyMutableState;
 use bevy_egui::EguiPlugin;
@@ -31,6 +31,8 @@ where
 {
     //START: run_loader
     fn build(&self, app: &mut App) {
+        app.add_message::<PhysicsTick>();
+        app.add_message::<Impulse>();
         app.init_state::<T>();
         app.add_plugins(EguiPlugin::default());
 

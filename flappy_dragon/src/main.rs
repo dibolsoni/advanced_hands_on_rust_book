@@ -1,8 +1,9 @@
 use bevy::prelude::*;
 use my_library::bevy_assets::{AssetManager, AssetResource, AssetStore, LoadedAssets};
 use my_library::bevy_framework::{
-    cleanup, AnimationFrame, AnimationOption, Animations, ContinualParallax,
-    GameStatePlugin, PerFrameAnimation,
+    apply_gravity, apply_velocity, cleanup, physics_clock, sum_impulses, AnimationFrame,
+    AnimationOption, Animations, ApplyGravity, ContinualParallax, GameStatePlugin, Impulse, PerFrameAnimation,
+    PhysicsTick, Velocity,
 };
 use my_library::bevy_framework::{continual_parallax, cycle_animations, AnimationCycle};
 use my_library::*;
@@ -33,10 +34,14 @@ enum GamePhase {
 //START: main
 fn main() -> anyhow::Result<()> {
     let mut app = App::new();
-
+    app.add_message::<Impulse>();
+    app.add_message::<PhysicsTick>();
     add_phase!(app, GamePhase, GamePhase::Flapping,
         start => [ setup ],
-        run => [gravity, flap, clamp, move_walls, hit_wall, cycle_animations, continual_parallax],
+        run => [
+            flap, clamp, move_walls, hit_wall,
+            cycle_animations, continual_parallax, physics_clock,
+            sum_impulses, apply_gravity, apply_velocity],
         exit => [cleanup::<FlappyElement>]
     );
 
@@ -130,7 +135,9 @@ fn setup(
         10.0,
         "Straight and Level",
         Flappy { gravity: 0.0 },
-        FlappyElement
+        FlappyElement,
+        Velocity::default(),
+        ApplyGravity
     );
     build_wall(&mut commands, &assets, &loaded_assets, rng.range(-5..5));
     spawn_image!(
@@ -230,28 +237,30 @@ fn build_wall(
                 10.0,
                 &loaded_assets,
                 Obstacle,
-                FlappyElement
+                FlappyElement,
+                Velocity::new(-4.0, 0.0, 0.0)
             );
         }
     }
 }
-//END: build_wall
 
-//START: gravity
-fn gravity(mut query: Query<(&mut Flappy, &mut Transform)>) {
-    if let Ok((mut flappy, mut transform)) = query.single_mut() {
-        //<callout id="flappy.basics.get_flappy" />
-        flappy.gravity += 0.1; //<callout id="flappy.basics.inc_gravity" />
-        transform.translation.y -= flappy.gravity; //<callout id="flappy.basics.dec_pos" />
-    }
-}
-//END: gravity
-
-//START: flap
-fn flap(keyboard: Res<ButtonInput<KeyCode>>, mut query: Query<(&mut Flappy, &mut AnimationCycle)>) {
+fn flap(
+    keyboard: Res<ButtonInput<KeyCode>>,
+    mut query: Query<(Entity, &mut AnimationCycle)>,
+    mut impulse: MessageWriter<Impulse>,
+    mut source_counter: Local<i32>,
+) {
     if keyboard.pressed(KeyCode::Space) {
-        if let Ok((mut flappy, mut animation)) = query.single_mut() {
-            flappy.gravity = -5.0; //<callout id="flappy.basics.flap" />
+        if let Ok((flappy, mut animation)) = query.single_mut() {
+            let current_source = *source_counter;
+            *source_counter = source_counter.wrapping_add(1);
+            println!("Flapping: {}", current_source);
+            impulse.write(Impulse {
+                target: flappy,
+                amount: Vec3::Y,
+                absolute: false,
+                source: current_source,
+            });
             animation.switch("Flapping");
         }
     }
@@ -273,15 +282,14 @@ fn clamp(mut query: Query<&mut Transform, With<Flappy>>, mut state: ResMut<NextS
 //START: move_wall1
 fn move_walls(
     mut commands: Commands,
-    mut query: Query<&mut Transform, With<Obstacle>>,
+    query: Query<&Transform, With<Obstacle>>,
     delete: Query<Entity, With<Obstacle>>,
     assets: Res<AssetStore>,
     loaded_assets: AssetResource,
     rng: ResMut<RandomNumberGenerator>,
 ) {
     let mut rebuild = false;
-    for mut transform in query.iter_mut() {
-        transform.translation.x -= 4.0;
+    for transform in query.iter() {
         if transform.translation.x < -530.0 {
             rebuild = true; //<callout id="flappy.basics.need_rebuild" />
         }
