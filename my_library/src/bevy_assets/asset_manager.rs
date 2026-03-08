@@ -44,7 +44,7 @@ impl AssetManager {
         #[cfg(not(target_arch = "wasm32"))]
         {
             let current_directory = std::env::current_dir()?;
-            let assets = current_directory.join("flappy_dragon/assets");
+            let assets = current_directory.join("assets");
             let new_image = assets.join(filename);
             if !new_image.exists() {
                 return Err(anyhow!("Asset {:?} does not exist", &new_image));

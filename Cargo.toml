@@ -1,5 +1,5 @@
 [workspace]
-members = ["hello_bevy", "hello_world", "my_library", "pig", "flappy_dragon"]
+members = ["hello_bevy", "hello_world", "my_library", "pig", "flappy_dragon", "collision"]
 
 resolver = "3"
 

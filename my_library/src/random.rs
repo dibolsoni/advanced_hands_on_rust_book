@@ -1,10 +1,12 @@
-use rand::{Rng, SeedableRng, distr::uniform::{SampleRange, SampleUniform}};
+use rand::{
+    distr::uniform::{SampleRange, SampleUniform}, Rng, RngExt, SeedableRng,
+};
 
 #[cfg(all(not(feature = "pcg"), not(feature = "xorshift")))]
 type RngCore = rand::prelude::StdRng;
 
 #[cfg(feature = "pcg")]
-type RngCore = rand_pcg::Pcg64Mcg;
+type RngCore = rand_pcg::Mcg128Xsl64;
 
 #[cfg(feature = "xorshift")]
 type RngCore = rand_xorshift::XorShiftRng;
@@ -45,8 +47,9 @@ impl RandomNumberGenerator {
     /// Creates a default `RandomNumberGenerator`, with a randomly
     /// selected starting seed.
     pub fn new() -> Self {
+        let seed = rand::rng().random::<u128>();
         Self {
-            rng: RngCore::from_os_rng(),
+            rng: RngCore::new(seed),
         }
     }
 
@@ -74,7 +77,8 @@ impl RandomNumberGenerator {
 
     /// Generates a new random number of the requested type.
     pub fn next<T>(&mut self) -> T
-    where rand::distr::StandardUniform: rand::prelude::Distribution<T>
+    where
+        rand::distr::StandardUniform: rand::prelude::Distribution<T>,
     {
         self.rng.random()
     }
@@ -104,8 +108,6 @@ impl RandomNumberGenerator {
 
 #[cfg(test)]
 mod test {
-    use super::*;
-
     #[test]
     fn test_range_bounds() {
         let mut rng = RandomNumberGenerator::new();
@@ -134,16 +136,16 @@ mod test {
         );
         (0..1000).for_each(|_| {
             assert_eq!(
-        rng.0.range(u32::MIN..u32::MAX),
-        rng.1.range(u32::MIN..u32::MAX),
-      );
+                rng.0.range(u32::MIN..u32::MAX),
+                rng.1.range(u32::MIN..u32::MAX),
+            );
         });
     }
 
     #[test]
     fn test_next_types() {
         let mut rng = RandomNumberGenerator::new();
-        let _ : i32 = rng.next();
+        let _: i32 = rng.next();
         let _ = rng.next::<f32>();
     }
 

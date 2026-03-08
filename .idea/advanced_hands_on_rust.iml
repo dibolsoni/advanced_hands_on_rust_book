@@ -10,6 +10,7 @@
       <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/flappy_dragon/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/flappy_dragon/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/collision/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/my_library/benches" isTestSource="true" />
       <sourceFolder url="file://$MODULE_DIR$/my_library/benches" isTestSource="true" />
       <excludeFolder url="file://$MODULE_DIR$/flappy_dragon/target" />

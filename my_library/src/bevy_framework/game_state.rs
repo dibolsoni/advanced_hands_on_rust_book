@@ -1,8 +1,9 @@
 use crate::bevy_assets::{exit_menu, run_loading_menu, setup_loading_menu};
-use crate::bevy_framework::{cleanup, run, setup_menu, Impulse, MenuElement, MenuResource, PhysicsTick};
+use crate::bevy_framework::{
+    cleanup, run, setup_menu, Impulse, MenuElement, MenuResource, PhysicsTick,
+};
 use bevy::prelude::*;
 use bevy::state::state::FreelyMutableState;
-use bevy_egui::EguiPlugin;
 
 pub struct GameStatePlugin<T> {
     menu_state: T,
@@ -34,7 +35,6 @@ where
         app.add_message::<PhysicsTick>();
         app.add_message::<Impulse>();
         app.init_state::<T>();
-        app.add_plugins(EguiPlugin::default());
 
         let start = MenuResource {
             menu_state: self.menu_state,

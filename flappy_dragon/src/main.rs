@@ -6,6 +6,7 @@ use my_library::bevy_framework::{
     PhysicsTick, Velocity,
 };
 use my_library::bevy_framework::{continual_parallax, cycle_animations, AnimationCycle};
+use my_library::egui::PrimaryEguiContext;
 use my_library::*;
 
 //START: components
@@ -125,7 +126,9 @@ fn setup(
     assets: Res<AssetStore>,
     loaded_assets: AssetResource,
 ) {
-    commands.spawn(Camera2d::default()).insert(FlappyElement); //<callout id="flappy.basics.2d_camera" />
+    commands
+        .spawn((Camera2d::default(), PrimaryEguiContext))
+        .insert(FlappyElement); //<callout id="flappy.basics.2d_camera" />
     spawn_animated_sprite!(
         assets,
         commands,
@@ -286,7 +289,7 @@ fn move_walls(
     delete: Query<Entity, With<Obstacle>>,
     assets: Res<AssetStore>,
     loaded_assets: AssetResource,
-    rng: ResMut<RandomNumberGenerator>,
+    mut rng: ResMut<RandomNumberGenerator>,
 ) {
     let mut rebuild = false;
     for transform in query.iter() {

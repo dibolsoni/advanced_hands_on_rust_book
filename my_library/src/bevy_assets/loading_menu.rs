@@ -32,7 +32,7 @@ pub(crate) fn run_loading_menu<T>(
     asset_server: Res<AssetServer>,
     mut to_load: ResMut<AssetsToLoad>,
     mut state: ResMut<NextState<T>>,
-    mut egui_context: EguiContexts,
+    // mut egui_context: EguiContexts,
     menu_info: Res<MenuResource<T>>,
     mut store: ResMut<AssetStore>,
     mut texture_atlases: ResMut<Assets<TextureAtlasLayout>>,
@@ -52,11 +52,11 @@ pub(crate) fn run_loading_menu<T>(
         state.set(menu_info.menu_state.clone());
     }
     println!("Loading: {} assets remaining", to_load.0.len());
-    if let Ok(ctx) = egui_context.ctx_mut() {
-        Window::new("Loading, Please Wait").show(ctx, |ui| {
-            ui.label(format!("Loading: {} assets remaining", to_load.0.len()));
-        });
-    }
+    // if let Ok(ctx) = egui_context.ctx_mut() {
+    //     Window::new("Loading, Please Wait").show(ctx, |ui| {
+    //         ui.label(format!("Loading: {} assets remaining", to_load.0.len()));
+    //     });
+    // }
 }
 
 pub(crate) fn exit_menu(mut commands: Commands) {
