@@ -11,8 +11,8 @@ pub use game_state::*;
 pub use phase::*;
 pub use animation::*;
 pub use physics::*;
-pub use collision::*;
 pub use game_menu::*;
+pub use collision::*;
 
 pub fn cleanup<T>(query: Query<Entity, With<T>>, mut commands: Commands)
 where

@@ -16,10 +16,8 @@ impl AxisAlignedBoundingBox {
 
   pub fn as_rect(&self, translate: Vec2) -> Rect2D {
     Rect2D::new(
-      Vec2::new(translate.x - self.half_size.x, 
-        translate.y - self.half_size.y),
-      Vec2::new(translate.x + self.half_size.x, 
-        translate.y + self.half_size.y),
+      Vec2::new(translate.x - self.half_size.x, translate.y - self.half_size.y),
+      Vec2::new(translate.x + self.half_size.x, translate.y + self.half_size.y),
     )
   }
 }

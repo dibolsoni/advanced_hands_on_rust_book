@@ -1,10 +1,6 @@
 use bevy::prelude::*;
 use my_library::bevy_assets::{AssetManager, AssetResource, AssetStore, LoadedAssets};
-use my_library::bevy_framework::{
-    apply_gravity, apply_velocity, cleanup, physics_clock, sum_impulses, AnimationFrame,
-    AnimationOption, Animations, ApplyGravity, ContinualParallax, GameStatePlugin, Impulse, PerFrameAnimation,
-    PhysicsTick, Velocity,
-};
+use my_library::bevy_framework::{apply_gravity, apply_velocity, check_collisions, cleanup, physics_clock, sum_impulses, AnimationFrame, AnimationOption, Animations, ApplyGravity, AxisAlignedBoundingBox, ContinualParallax, GameStatePlugin, Impulse, OnCollision, PerFrameAnimation, PhysicsPosition, PhysicsTick, StaticQuadTree, Velocity};
 use my_library::bevy_framework::{continual_parallax, cycle_animations, AnimationCycle};
 use my_library::egui::PrimaryEguiContext;
 use my_library::*;
@@ -37,13 +33,13 @@ fn main() -> anyhow::Result<()> {
     let mut app = App::new();
     app.add_message::<Impulse>();
     app.add_message::<PhysicsTick>();
+    app.add_message::<OnCollision<Flappy, Obstacle>>();
     add_phase!(app, GamePhase, GamePhase::Flapping,
-        start => [ setup ],
-        run => [
-            flap, clamp, move_walls, hit_wall,
-            cycle_animations, continual_parallax, physics_clock,
-            sum_impulses, apply_gravity, apply_velocity],
-        exit => [cleanup::<FlappyElement>]
+      start => [ setup ],
+      run => [ flap, clamp, move_walls, hit_wall, cycle_animations,
+        continual_parallax, physics_clock, sum_impulses, apply_gravity,
+        apply_velocity, check_collisions::<Flappy, Obstacle>, rotate],
+      exit => [ cleanup::<FlappyElement> ]
     );
 
     app.add_plugins(DefaultPlugins.set(WindowPlugin {
@@ -129,6 +125,7 @@ fn setup(
     commands
         .spawn((Camera2d::default(), PrimaryEguiContext))
         .insert(FlappyElement); //<callout id="flappy.basics.2d_camera" />
+    commands.insert_resource(StaticQuadTree::new(Vec2::new(1024.0, 768.0), 4));
     spawn_animated_sprite!(
         assets,
         commands,
@@ -140,7 +137,9 @@ fn setup(
         Flappy { gravity: 0.0 },
         FlappyElement,
         Velocity::default(),
-        ApplyGravity
+        ApplyGravity,
+        AxisAlignedBoundingBox::new(62.0, 65.0),
+        PhysicsPosition::new(Vec2::new(-490.0, 0.0))
     );
     build_wall(&mut commands, &assets, &loaded_assets, rng.range(-5..5));
     spawn_image!(
@@ -241,7 +240,9 @@ fn build_wall(
                 &loaded_assets,
                 Obstacle,
                 FlappyElement,
-                Velocity::new(-4.0, 0.0, 0.0)
+                Velocity::new(-8.0, 0.0, 0.0),
+                AxisAlignedBoundingBox::new(32.0, 32.0),
+                PhysicsPosition::new(Vec2::new(512.0, y as f32 * 32.0))
             );
         }
     }
@@ -251,18 +252,14 @@ fn flap(
     keyboard: Res<ButtonInput<KeyCode>>,
     mut query: Query<(Entity, &mut AnimationCycle)>,
     mut impulse: MessageWriter<Impulse>,
-    mut source_counter: Local<i32>,
 ) {
     if keyboard.pressed(KeyCode::Space) {
         if let Ok((flappy, mut animation)) = query.single_mut() {
-            let current_source = *source_counter;
-            *source_counter = source_counter.wrapping_add(1);
-            println!("Flapping: {}", current_source);
             impulse.write(Impulse {
                 target: flappy,
                 amount: Vec3::Y,
                 absolute: false,
-                source: current_source,
+                source: 0,
             });
             animation.switch("Flapping");
         }
@@ -310,23 +307,28 @@ fn move_walls(
 
 //START: hit_wall
 fn hit_wall(
-    player: Query<&Transform, With<Flappy>>, //<callout id="flappy.basics.find_player" />
-    walls: Query<&Transform, With<Obstacle>>, //<callout id="flappy.basics.find_walls" />
+    mut collisions: MessageReader<OnCollision<Flappy, Obstacle>>,
     mut state: ResMut<NextState<GamePhase>>,
     assets: Res<AssetStore>,
     loaded_assets: Res<LoadedAssets>,
     mut commands: Commands,
 ) {
-    if let Ok(player) = player.single() {
-        //<callout id="flappy.basics.just_player" />
-        for wall in walls.iter() {
-            //<callout id="flappy.basics.all_walls" />
-            let distance = player.translation.distance(wall.translation); //<callout id="flappy.basics.distance" />
-            if distance < 32.0 {
-                assets.play("crash", &mut commands, &loaded_assets);
-                state.set(GamePhase::GameOver);
-            }
-        }
+    for _collision in collisions.read() {
+        assets.play("crash", &mut commands, &loaded_assets);
+        let _ = state.set(GamePhase::GameOver);
     }
 }
 //END: hit_wall
+
+pub fn rotate(mut physics_position: Query<(&mut PhysicsPosition, &mut Transform), With<Flappy>>) {
+    physics_position
+        .iter_mut()
+        .for_each(|(position, mut transform)| {
+            if position.start_frame != position.end_frame {
+                let start = position.start_frame;
+                let end = position.end_frame;
+                let angle = end.angle_to(start) * 10.0;
+                transform.rotation = Quat::from_rotation_z(angle);
+            }
+        })
+}
